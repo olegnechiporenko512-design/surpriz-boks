@@ -142,6 +142,34 @@ function authPopupPlugin(): Plugin {
   };
 }
 
+function insightsStubPlugin(): Plugin {
+  const respond = (
+    req: { url?: string },
+    res: { statusCode: number; setHeader: (name: string, value: string) => void; end: (body?: string) => void },
+    next: () => void,
+  ) => {
+    const pathOnly = (req.url ?? "").split("?", 1)[0] ?? "";
+    if (pathOnly !== "/_vercel/insights/script.js") {
+      next();
+      return;
+    }
+    res.statusCode = 200;
+    res.setHeader("content-type", "application/javascript; charset=utf-8");
+    res.setHeader("cache-control", "no-store");
+    res.end("/* insights placeholder for local preview */\n");
+  };
+  return {
+    name: "app-builder:insights-stub",
+    apply: "serve",
+    configureServer(server) {
+      server.middlewares.use(respond);
+    },
+    configurePreviewServer(server) {
+      server.middlewares.use(respond);
+    },
+  };
+}
+
 // `0.0.0.0:8080` is the live-preview contract — don't change host/port.
 // The dev server starts once `src/router.tsx` and `src/routes/` exist — see
 // AGENTS.md § "First scaffold".
@@ -159,6 +187,7 @@ export default defineConfig(({ command, isPreview }) => ({
   resolve: { tsconfigPaths: true },
   plugins: [
     pgliteBootstrapPlugin(),
+    insightsStubPlugin(),
     // Before tanstackStart so /auth/popup never falls through to the SPA.
     authPopupPlugin(),
     // Dev-only /__app-env, read by scripts/check-auth-invariant.mjs.

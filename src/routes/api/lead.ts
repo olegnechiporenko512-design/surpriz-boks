@@ -1,8 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ATTR_FIELDS, type Attribution } from "@/lib/attribution";
 import { isValidName, normalizeUaPhone } from "@/lib/phone";
-
-const hits = new Map<string, number[]>();
+import type { OutboundLead } from "@/lib/lead-forward.server";
 
 function clip(value: unknown, max: number): string {
   if (typeof value !== "string") return "";
@@ -38,6 +37,8 @@ function allowedHosts(request: Request): Set<string> {
   }
   hosts.add("localhost:8080");
   hosts.add("127.0.0.1:8080");
+  hosts.add("surprize-cool.click");
+  hosts.add("www.surprize-cool.click");
   return hosts;
 }
 
@@ -56,156 +57,60 @@ function clientIp(request: Request): string {
   return (request.headers.get("x-real-ip") ?? "").slice(0, 64);
 }
 
-function rateLimited(ip: string): boolean {
-  const now = Date.now();
-  const recent = (hits.get(ip) ?? []).filter((stamp) => now - stamp < 10 * 60 * 1000);
-  if (recent.length >= 8) {
-    hits.set(ip, recent);
-    return true;
-  }
-  recent.push(now);
-  hits.set(ip, recent);
-  return false;
-}
-
-function scriptUrl(): string | null {
-  const raw = (process.env.GOOGLE_SCRIPT_URL || process.env.GS_URL)?.trim();
-  if (!raw) return null;
-  try {
-    const url = new URL(raw);
-    if (url.protocol === "https:") return raw;
-    if (url.protocol === "http:" && (url.hostname === "localhost" || url.hostname === "127.0.0.1")) {
-      return raw;
-    }
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-function extractJson(raw: string): string {
-  const text = raw.replace(/^\uFEFF/, "").trim();
-  if (text.startsWith("{") || text.startsWith("[")) return text;
-  const start = text.indexOf("{");
-  const end = text.lastIndexOf("}");
-  if (start >= 0 && end > start) return text.slice(start, end + 1);
-  return text;
-}
-
-function isExplicitFailure(raw: string): boolean {
-  try {
-    const parsed = JSON.parse(extractJson(raw)) as {
-      ok?: boolean;
-      success?: boolean;
-      status?: string;
-      result?: string;
-    };
-    if (parsed.ok === false || parsed.success === false) return true;
-    const state = String(parsed.status || parsed.result || "").toLowerCase();
-    return state === "error" || state === "fail" || state === "failed";
-  } catch {
-    return false;
-  }
-}
-
-function isUpstreamSuccess(status: number, raw: string): boolean {
-  if (status < 200 || status >= 300) return false;
-  const text = raw.replace(/^\uFEFF/, "").trim();
-  if (!text) return false;
-  if (isExplicitFailure(text)) return false;
-  try {
-    const parsed = JSON.parse(extractJson(text)) as {
-      ok?: boolean;
-      success?: boolean;
-      status?: string;
-      result?: string;
-    };
-    if (parsed.ok === true || parsed.success === true) return true;
-    const state = String(parsed.status || parsed.result || "").toLowerCase();
-    if (state === "ok" || state === "success") return true;
-  } catch {
-    // not JSON
-  }
-  return /^OK\b/i.test(text) || /"status"\s*:\s*"ok"/i.test(text);
-}
-
-function isScriptEcho(location: string, base: string): boolean {
-  try {
-    return new URL(location, base).hostname.endsWith("googleusercontent.com");
-  } catch {
-    return false;
-  }
-}
-
-async function readUpstream(upstream: string, body: string): Promise<{ status: number; raw: string }> {
-  const first = await fetch(upstream, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json,text/plain,*/*",
-    },
-    body,
-    redirect: "manual",
-    signal: AbortSignal.timeout(20_000),
-  });
-
-  const location = first.headers.get("location");
-  if (location && isScriptEcho(location, upstream)) {
-    const second = await fetch(new URL(location, upstream), {
-      method: "GET",
-      redirect: "follow",
-      signal: AbortSignal.timeout(20_000),
-    });
-    const raw = await second.text();
-    if (isUpstreamSuccess(second.status, raw) || isExplicitFailure(raw)) {
-      return { status: second.status, raw };
-    }
-    return { status: 200, raw: '{"ok":true,"success":true}' };
-  }
-
-  if (first.status === 0 || (first.status >= 300 && first.status < 400)) {
-    return { status: 200, raw: '{"ok":true,"success":true}' };
-  }
-
-  return { status: first.status, raw: await first.text() };
-}
-
 function json(body: unknown, status = 200) {
   return Response.json(body, { status, headers: { "Cache-Control": "no-store" } });
+}
+
+function makeOrderId(): string {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/Kyiv",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date());
+  const pick = (type: string) => parts.find((part) => part.type === type)?.value ?? "00";
+  const stamp = `${pick("year")}${pick("month")}${pick("day")}${pick("hour")}${pick("minute")}${pick("second")}`;
+  const rand = crypto.randomUUID().replace(/-/g, "").slice(0, 8);
+  return `${stamp}-${rand}`;
 }
 
 export const Route = createFileRoute("/api/lead")({
   server: {
     handlers: {
       GET: async () => {
-        return json({ ok: true, scriptUrlConfigured: Boolean(scriptUrl()) });
+        return json({
+          ok: true,
+          scriptUrlConfigured: Boolean((process.env.GOOGLE_SCRIPT_URL || process.env.GS_URL)?.trim()),
+          capiConfigured: Boolean(process.env.META_CAPI_TOKEN?.trim()),
+        });
       },
       POST: async ({ request }) => {
-        if (!originAllowed(request)) return json({ success: false, error: "upstream_failed" });
-
-        const ip = clientIp(request) || "unknown";
-        if (rateLimited(ip)) return json({ success: false, error: "upstream_failed" });
+        if (!originAllowed(request)) return json({ success: false, error: "bad_request" }, 400);
 
         const declared = Number(request.headers.get("content-length") ?? "0");
-        if (declared > 8_000) return json({ success: false, error: "upstream_failed" });
+        if (declared > 8_000) return json({ success: false, error: "bad_request" }, 400);
 
         let text = "";
         try {
           text = await request.text();
         } catch {
-          return json({ success: false, error: "bad_name" }, 400);
+          return json({ success: false, error: "bad_request" }, 400);
         }
-        if (text.length > 8_000) return json({ success: false, error: "upstream_failed" });
+        if (text.length > 8_000) return json({ success: false, error: "bad_request" }, 400);
 
         let body: Record<string, unknown>;
         try {
           const parsed = JSON.parse(text) as unknown;
           if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-            return json({ success: false, error: "bad_name" }, 400);
+            return json({ success: false, error: "bad_request" }, 400);
           }
           body = parsed as Record<string, unknown>;
         } catch {
-          return json({ success: false, error: "bad_name" }, 400);
+          return json({ success: false, error: "bad_request" }, 400);
         }
 
         if (clip(body.website, 200)) return json({ success: true });
@@ -217,9 +122,15 @@ export const Route = createFileRoute("/api/lead")({
         if (!phone) return json({ success: false, error: "bad_phone" }, 400);
 
         const quantityRaw = Number(body.quantity);
-        const quantity = Number.isInteger(quantityRaw) ? Math.min(Math.max(quantityRaw, 1), 20) : 1;
+        if (!Number.isInteger(quantityRaw) || quantityRaw < 1 || quantityRaw > 20) {
+          return json({ success: false, error: "bad_request" }, 400);
+        }
         const totalRaw = Number(body.total);
-        const total = Number.isFinite(totalRaw) ? Math.round(totalRaw) : 0;
+        if (!Number.isFinite(totalRaw) || totalRaw < 1 || totalRaw > 100_000) {
+          return json({ success: false, error: "bad_request" }, 400);
+        }
+        const variant = clip(body.variant, 160);
+        if (variant.length < 2) return json({ success: false, error: "bad_request" }, 400);
 
         const attr: Attribution = {
           utm_source: "",
@@ -233,13 +144,15 @@ export const Route = createFileRoute("/api/lead")({
         };
         for (const field of ATTR_FIELDS) attr[field] = clip(body[field], 300);
 
-        const payload = {
+        const order_id = makeOrderId();
+        const lead: OutboundLead = {
+          order_id,
           name,
           phone,
-          quantity,
-          variant: clip(body.variant, 160),
-          total,
-          page: clip(body.page, 300),
+          quantity: quantityRaw,
+          variant,
+          total: Math.round(totalRaw),
+          page: clip(body.page, 500),
           utm_source: attr.utm_source,
           utm_medium: attr.utm_medium,
           utm_campaign: attr.utm_campaign,
@@ -248,31 +161,20 @@ export const Route = createFileRoute("/api/lead")({
           fbclid: attr.fbclid,
           ttclid: attr.ttclid,
           gclid: attr.gclid,
-          ip,
+          fbp: clip(body.fbp, 200),
+          fbc: clip(body.fbc, 200),
+          ip: clientIp(request),
           ua: clip(request.headers.get("user-agent"), 300),
         };
 
-        const upstream = scriptUrl();
-        if (!upstream) {
-          if (process.env.VERCEL) return json({ success: false, error: "upstream_failed" });
-          return json({ success: true });
+        try {
+          const { enqueueLead } = await import("@/lib/lead-forward.server");
+          enqueueLead(lead);
+        } catch (error) {
+          console.error("[lead] enqueue failed", error instanceof Error ? error.message : "unknown", lead);
         }
 
-        try {
-          const upstreamResult = await readUpstream(upstream, JSON.stringify(payload));
-          if (!isUpstreamSuccess(upstreamResult.status, upstreamResult.raw)) {
-            console.error(
-              "[lead] upstream failed",
-              upstreamResult.status,
-              upstreamResult.raw.slice(0, 180).replace(/\d{6,}/g, "…"),
-            );
-            return json({ success: false, error: "upstream_failed" });
-          }
-          return json({ success: true });
-        } catch (error) {
-          console.error("[lead] upstream error", error instanceof Error ? error.name : "unknown");
-          return json({ success: false, error: "upstream_failed" });
-        }
+        return json({ success: true, order_id });
       },
     },
   },

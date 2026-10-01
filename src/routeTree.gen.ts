@@ -11,7 +11,12 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AgreementRouteImport } from './routes/agreement'
+import { Route as CookiesRouteImport } from './routes/cookies'
+import { Route as DeliveryRouteImport } from './routes/delivery'
+import { Route as DyakuiemoRouteImport } from './routes/dyakuiemo'
+import { Route as OfferRouteImport } from './routes/offer'
 import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as ReturnsRouteImport } from './routes/returns'
 import { Route as ApiLeadRouteImport } from './routes/api/lead'
 
 const IndexRoute = IndexRouteImport.update({
@@ -24,9 +29,34 @@ const AgreementRoute = AgreementRouteImport.update({
   path: '/agreement',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CookiesRoute = CookiesRouteImport.update({
+  id: '/cookies',
+  path: '/cookies',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DeliveryRoute = DeliveryRouteImport.update({
+  id: '/delivery',
+  path: '/delivery',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DyakuiemoRoute = DyakuiemoRouteImport.update({
+  id: '/dyakuiemo',
+  path: '/dyakuiemo',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OfferRoute = OfferRouteImport.update({
+  id: '/offer',
+  path: '/offer',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PrivacyRoute = PrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReturnsRoute = ReturnsRouteImport.update({
+  id: '/returns',
+  path: '/returns',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiLeadRoute = ApiLeadRouteImport.update({
@@ -38,34 +68,82 @@ const ApiLeadRoute = ApiLeadRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/agreement': typeof AgreementRoute
+  '/cookies': typeof CookiesRoute
+  '/delivery': typeof DeliveryRoute
+  '/dyakuiemo': typeof DyakuiemoRoute
+  '/offer': typeof OfferRoute
   '/privacy': typeof PrivacyRoute
+  '/returns': typeof ReturnsRoute
   '/api/lead': typeof ApiLeadRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/agreement': typeof AgreementRoute
+  '/cookies': typeof CookiesRoute
+  '/delivery': typeof DeliveryRoute
+  '/dyakuiemo': typeof DyakuiemoRoute
+  '/offer': typeof OfferRoute
   '/privacy': typeof PrivacyRoute
+  '/returns': typeof ReturnsRoute
   '/api/lead': typeof ApiLeadRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/agreement': typeof AgreementRoute
+  '/cookies': typeof CookiesRoute
+  '/delivery': typeof DeliveryRoute
+  '/dyakuiemo': typeof DyakuiemoRoute
+  '/offer': typeof OfferRoute
   '/privacy': typeof PrivacyRoute
+  '/returns': typeof ReturnsRoute
   '/api/lead': typeof ApiLeadRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/agreement' | '/privacy' | '/api/lead'
+  fullPaths:
+    | '/'
+    | '/agreement'
+    | '/cookies'
+    | '/delivery'
+    | '/dyakuiemo'
+    | '/offer'
+    | '/privacy'
+    | '/returns'
+    | '/api/lead'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/agreement' | '/privacy' | '/api/lead'
-  id: '__root__' | '/' | '/agreement' | '/privacy' | '/api/lead'
+  to:
+    | '/'
+    | '/agreement'
+    | '/cookies'
+    | '/delivery'
+    | '/dyakuiemo'
+    | '/offer'
+    | '/privacy'
+    | '/returns'
+    | '/api/lead'
+  id:
+    | '__root__'
+    | '/'
+    | '/agreement'
+    | '/cookies'
+    | '/delivery'
+    | '/dyakuiemo'
+    | '/offer'
+    | '/privacy'
+    | '/returns'
+    | '/api/lead'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AgreementRoute: typeof AgreementRoute
+  CookiesRoute: typeof CookiesRoute
+  DeliveryRoute: typeof DeliveryRoute
+  DyakuiemoRoute: typeof DyakuiemoRoute
+  OfferRoute: typeof OfferRoute
   PrivacyRoute: typeof PrivacyRoute
+  ReturnsRoute: typeof ReturnsRoute
   ApiLeadRoute: typeof ApiLeadRoute
 }
 
@@ -85,11 +163,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AgreementRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/cookies': {
+      id: '/cookies'
+      path: '/cookies'
+      fullPath: '/cookies'
+      preLoaderRoute: typeof CookiesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/delivery': {
+      id: '/delivery'
+      path: '/delivery'
+      fullPath: '/delivery'
+      preLoaderRoute: typeof DeliveryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dyakuiemo': {
+      id: '/dyakuiemo'
+      path: '/dyakuiemo'
+      fullPath: '/dyakuiemo'
+      preLoaderRoute: typeof DyakuiemoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/offer': {
+      id: '/offer'
+      path: '/offer'
+      fullPath: '/offer'
+      preLoaderRoute: typeof OfferRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/privacy': {
       id: '/privacy'
       path: '/privacy'
       fullPath: '/privacy'
       preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/returns': {
+      id: '/returns'
+      path: '/returns'
+      fullPath: '/returns'
+      preLoaderRoute: typeof ReturnsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/lead': {
@@ -105,7 +218,12 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AgreementRoute: AgreementRoute,
+  CookiesRoute: CookiesRoute,
+  DeliveryRoute: DeliveryRoute,
+  DyakuiemoRoute: DyakuiemoRoute,
+  OfferRoute: OfferRoute,
   PrivacyRoute: PrivacyRoute,
+  ReturnsRoute: ReturnsRoute,
   ApiLeadRoute: ApiLeadRoute,
 }
 export const routeTree = rootRouteImport

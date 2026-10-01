@@ -1,9 +1,11 @@
 # Сюрприз бокс
 
-Лендінг Mystery Box. Заявка: форма → `POST /api/lead` → Google Apps Script → таблиця + LP-CRM.
+Лендінг Mystery Box для surprize-cool.click. Заявка: форма → `POST /api/lead` → одразу `{ success: true, order_id }` → у фоні Google Apps Script і Meta Conversions API.
 
-На Vercel додайте змінну оточення:
+На Vercel потрібні змінні оточення (значення не зберігаються в репозиторії):
 
-`GOOGLE_SCRIPT_URL` = адреса веб-додатка Apps Script (`https://script.google.com/macros/s/.../exec`)
+- `GOOGLE_SCRIPT_URL` — адреса веб-додатка Apps Script (`https://script.google.com/macros/s/.../exec`)
+- `META_CAPI_TOKEN` — токен Conversions API для пікселя `1749190629525376` (sensitive)
+- `META_TEST_EVENT_CODE` — необов’язково, лише щоб події потрапляли в Test Events
 
-Пікселі Meta `3557729764386334` і TikTok `DAS6203C77U3N3HEQL7G` стоять у `<head>`. Події Lead і SubmitForm відправляються тільки після `success: true`.
+Піксель Meta `1749190629525376` стоїть у `<head>`: PageView на всіх сторінках, ViewContent лише на головній. Lead і Purchase — тільки на `/dyakuiemo`, з `eventID` = `order_id` (той самий, що `event_id` у CAPI). TikTok-піксель не підключений.

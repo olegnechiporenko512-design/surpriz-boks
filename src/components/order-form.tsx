@@ -3,51 +3,22 @@ import { OFFERS, THEMES, variantLabel, type Offer, type ThemeId } from "@/lib/of
 import { readAttribution } from "@/lib/attribution";
 import { formatUaPhone, isValidName, normalizeUaPhone } from "@/lib/phone";
 
+const SEND_ERROR = "Не вдалося відправити, спробуйте ще раз";
+const PRODUCT_NAME = "Сюрприз бокс";
+
 type LeadResponse = {
   success?: boolean;
-  error?: string;
+  order_id?: string;
 };
 
-export type DoneOrder = {
-  name: string;
-  variant: string;
-  total: number;
-  quantity: number;
-};
-
-function messageFor(code: string | undefined): string {
-  if (code === "bad_name") return "Перевірте ім’я — щонайменше 2 символи.";
-  if (code === "bad_phone") return "Перевірте номер: потрібен український мобільний, наприклад 067 123 45 67.";
-  return "Не вдалося надіслати замовлення. Спробуйте ще раз за хвилину.";
-}
-
-function trackPixels(total: number, variant: string, phone: string) {
-  const win = window as Window & {
-    ttq?: {
-      identify?: (payload: Record<string, string>) => void;
-      track: (event: string, payload?: Record<string, unknown>) => void;
-    };
-    fbq?: (...args: unknown[]) => void;
-  };
-  const canonical = normalizeUaPhone(phone);
+function readCookie(name: string): string {
+  if (typeof document === "undefined") return "";
+  const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
+  if (!match?.[1]) return "";
   try {
-    if (canonical) win.ttq?.identify?.({ phone_number: `+${canonical}` });
+    return decodeURIComponent(match[1]);
   } catch {
-    // піксель не має ламати форму
-  }
-  try {
-    win.ttq?.track("SubmitForm", { value: total, currency: "UAH" });
-  } catch {
-    // піксель не має ламати форму
-  }
-  try {
-    win.fbq?.("track", "Lead", {
-      value: total,
-      currency: "UAH",
-      content_name: variant,
-    });
-  } catch {
-    // піксель не має ламати форму
+    return match[1];
   }
 }
 
@@ -56,16 +27,12 @@ export function OrderForm({
   theme,
   onOffer,
   onTheme,
-  done,
-  onDone,
   idPrefix,
 }: {
   offer: Offer;
   theme: ThemeId | "";
   onOffer: (offer: Offer) => void;
   onTheme: (theme: ThemeId | "") => void;
-  done: DoneOrder | null;
-  onDone: (order: DoneOrder) => void;
   idPrefix: string;
 }) {
   const [name, setName] = useState("");
@@ -81,15 +48,16 @@ export function OrderForm({
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (pending || done) return;
+    if (pending) return;
     const cleanName = name.trim().replace(/\s+/g, " ");
     if (!isValidName(cleanName)) {
-      setError(messageFor("bad_name"));
+      setError("Вкажіть ім’я — щонайменше 2 символи.");
       nameRef.current?.focus();
       return;
     }
-    if (!normalizeUaPhone(phone)) {
-      setError(messageFor("bad_phone"));
+    const canonical = normalizeUaPhone(phone);
+    if (!canonical) {
+      setError("Вкажіть повний номер: після +380 має бути 9 цифр.");
       phoneRef.current?.focus();
       return;
     }
@@ -99,7 +67,7 @@ export function OrderForm({
     const variant = variantLabel(offer, theme);
     const payload = {
       name: cleanName,
-      phone,
+      phone: canonical,
       quantity: offer.quantity,
       variant,
       total: offer.price,
@@ -113,6 +81,8 @@ export function OrderForm({
       fbclid: attr.fbclid,
       ttclid: attr.ttclid,
       gclid: attr.gclid,
+      fbp: readCookie("_fbp"),
+      fbc: readCookie("_fbc"),
     };
     try {
       const response = await fetch("/api/lead", {
@@ -122,48 +92,33 @@ export function OrderForm({
       });
       const data = (await response.json().catch(() => ({}))) as LeadResponse;
       if (data.success === true) {
-        trackPixels(offer.price, variant, phone);
-        onDone({
-          name: cleanName,
-          variant,
-          total: offer.price,
-          quantity: offer.quantity,
-        });
+        if (typeof data.order_id === "string" && data.order_id) {
+          try {
+            sessionStorage.setItem(
+              "lead_order",
+              JSON.stringify({
+                order_id: data.order_id,
+                name: cleanName,
+                phone: canonical,
+                variant,
+                quantity: offer.quantity,
+                total: offer.price,
+                product: PRODUCT_NAME,
+              }),
+            );
+          } catch {
+            // sessionStorage може бути недоступний
+          }
+        }
+        window.location.assign("/dyakuiemo");
         return;
       }
-      setError(messageFor(data.error));
+      setError(SEND_ERROR);
+      setPending(false);
     } catch {
-      setError(messageFor(undefined));
-    } finally {
+      setError(SEND_ERROR);
       setPending(false);
     }
-  }
-
-  if (done) {
-    return (
-      <div className="thanks" role="status">
-        <p className="thanks-kicker">Заявку прийнято</p>
-        <h2>Дякуємо, {done.name.split(" ")[0]}!</h2>
-        <p>
-          Менеджер передзвонить, щоб уточнити відділення Нової пошти. Оплата — тільки коли
-          заберете бокс. Якщо не підійде, просто не оплачуєте.
-        </p>
-        <dl>
-          <div>
-            <dt>Бокс</dt>
-            <dd>{done.variant}</dd>
-          </div>
-          <div>
-            <dt>До відправки</dt>
-            <dd>{done.quantity} шт.</dd>
-          </div>
-          <div>
-            <dt>Сума</dt>
-            <dd>{done.total} грн</dd>
-          </div>
-        </dl>
-      </div>
-    );
   }
 
   return (
@@ -239,8 +194,8 @@ export function OrderForm({
           type="tel"
           inputMode="tel"
           autoComplete="tel"
-          placeholder="067 123 45 67"
-          maxLength={20}
+          placeholder="+380 67 123 45 67"
+          maxLength={22}
           value={phone}
           onChange={(event) => {
             setPhone(formatUaPhone(event.target.value));

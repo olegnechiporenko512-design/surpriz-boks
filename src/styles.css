@@ -534,6 +534,7 @@ h1 {
 }
 
 .story img,
+.story video,
 .perks img,
 .bleed {
   width: 100%;
@@ -741,6 +742,31 @@ h1 {
   border-radius: 999px;
   padding: 0.65rem 0.95rem;
   font-family: var(--font-display);
+}
+
+.foot-links {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  align-items: center;
+  margin: 0.4rem 0 1rem;
+}
+
+.foot-links a {
+  color: var(--color-ink);
+  font-weight: 700;
+}
+
+.thanks-page {
+  padding: 1.4rem 1rem 3rem;
+}
+
+.thanks-page h1 {
+  font-size: clamp(1.6rem, 5vw, 2rem);
+}
+
+#upsell {
+  min-height: 0;
 }
 
 .legal {

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Banknote, Package, PhoneCall, ShieldCheck, Truck } from "lucide-react";
-import { OrderForm, type DoneOrder } from "@/components/order-form";
+import { OrderForm } from "@/components/order-form";
 import { OFFERS, getOffer, type Offer, type ThemeId } from "@/lib/offers";
 
 const FAQ = [
@@ -28,10 +28,10 @@ const FAQ = [
 ];
 
 const REVIEWS = [
-  { src: "/media/review-1.jpg", alt: "Відгук Марини: я в шоці, це точно мені" },
-  { src: "/media/review-2.jpg", alt: "Відгук Олени: дякую, класний бокс" },
-  { src: "/media/review-3.jpg", alt: "Відгук: це прям топ" },
-  { src: "/media/review-4.jpg", alt: "Відгук: найкращий бокс" },
+  { src: "/media/review-1.webp", alt: "Відгук Марини: я в шоці, це точно мені" },
+  { src: "/media/review-2.webp", alt: "Відгук Олени: дякую, класний бокс" },
+  { src: "/media/review-3.webp", alt: "Відгук: це прям топ" },
+  { src: "/media/review-4.webp", alt: "Відгук: найкращий бокс" },
 ];
 
 function useCountdown() {
@@ -101,7 +101,6 @@ export function Landing() {
   const parts = useCountdown();
   const [offer, setOffer] = useState<Offer>(OFFERS[0]);
   const [theme, setTheme] = useState<ThemeId | "">("");
-  const [done, setDone] = useState<DoneOrder | null>(null);
   const [playing, setPlaying] = useState(false);
   const [sticky, setSticky] = useState(false);
   const orderedToday = 16 + (new Date().getDate() % 9);
@@ -110,18 +109,18 @@ export function Landing() {
     const hero = document.getElementById("order");
     if (!hero || !("IntersectionObserver" in window)) return;
     const observer = new IntersectionObserver(
-      ([entry]) => setSticky(!entry.isIntersecting && !done),
+      ([entry]) => setSticky(!entry.isIntersecting),
       { threshold: 0.15 },
     );
     observer.observe(hero);
     return () => observer.disconnect();
-  }, [done]);
+  }, []);
 
   return (
     <div className="page">
       <div className="sheet">
         <p className="topbar">Акція −35% до опівночі · оплата при отриманні</p>
-        <img className="ribbon" src="/media/ribbon-top.png" alt="" />
+        <img className="ribbon" src="/media/ribbon-top.webp" alt="" />
 
         <header className="hero">
           <p className="eyebrow">Mystery Box</p>
@@ -133,7 +132,7 @@ export function Landing() {
         </header>
 
         <div className="hero-frame">
-          <img src="/media/hero.jpg" alt="Закритий сюрприз бокс з золотим бантом" />
+          <img src="/media/hero.webp" alt="Закритий сюрприз бокс з золотим бантом" />
           <p className="sale-badge">
             акція
             <strong>−35%</strong>
@@ -151,8 +150,6 @@ export function Landing() {
             theme={theme}
             onOffer={setOffer}
             onTheme={setTheme}
-            done={done}
-            onDone={setDone}
           />
           <p className="stock">
             залишилось <strong>7</strong> одиниць зі знижкою
@@ -178,7 +175,7 @@ export function Landing() {
           </li>
         </ul>
 
-        <img className="ribbon" src="/media/ribbon.png" alt="" />
+        <img className="ribbon" src="/media/ribbon.webp" alt="" loading="lazy" />
 
         <section className="story">
           <h2>Твій бокс чекає на тебе</h2>
@@ -186,7 +183,15 @@ export function Landing() {
             Наповнення коробочки лишається загадкою. Всередині — комбінація трендових
             товарів, зібраних так, щоб відкриття було в задоволення, а не в розчарування.
           </p>
-          <img src="/media/unbox.gif" alt="Розпаковка сюрприз боксу" />
+          <video
+            className="unbox"
+            src="/media/unbox.mp4"
+            autoPlay
+            muted
+            loop
+            playsInline
+            aria-label="Розпаковка сюрприз боксу"
+          />
           <h2>4 розміри — оберіть свій</h2>
           <ul className="sizes">
             {OFFERS.map((item) => (
@@ -202,7 +207,7 @@ export function Landing() {
             ))}
           </ul>
           <p>Обирайте тематику: для жінки, чоловіка або дитини — напишемо це в замовлення.</p>
-          <img src="/media/themes.jpg" alt="Бокси для жінки, чоловіка і дитини" />
+          <img src="/media/themes.webp" alt="Бокси для жінки, чоловіка і дитини" loading="lazy" />
           <p>
             Після заявки лишається тільки дочекатись пакунка і відкрити його. Всі люблять
             сюрпризи — особливо коли чек уже зі знижкою, а платити треба лише на пошті.
@@ -212,20 +217,20 @@ export function Landing() {
           </a>
         </section>
 
-        <img className="bleed" src="/media/wide.jpg" alt="Сюрприз бокс збоку" />
+        <img className="bleed" src="/media/wide.webp" alt="Сюрприз бокс збоку" loading="lazy" />
 
         <section className="perks">
           <h2>Чому цей бокс беруть</h2>
           <article>
-            <img src="/media/benefit-1.jpg" alt="Наповнення боксу" />
+            <img src="/media/benefit-1.webp" alt="Наповнення боксу" loading="lazy" />
             <p>Трендові речі за ціною, нижчою за окрему покупку кожної.</p>
           </article>
           <article className="flip">
-            <img src="/media/benefit-2.jpg" alt="Косметика і аксесуари з боксу" />
+            <img src="/media/benefit-2.webp" alt="Косметика і аксесуари з боксу" loading="lazy" />
             <p>У Medium, Maxi і Ultra найцікавіше наповнення — з гарантованою електронікою.</p>
           </article>
           <article>
-            <img src="/media/benefit-3.jpg" alt="Навушники, годинник і гаджети" />
+            <img src="/media/benefit-3.webp" alt="Навушники, годинник і гаджети" loading="lazy" />
             <p>Ефект несподіванки: дізнаєтесь, що всередині, тільки коли відкриєте.</p>
           </article>
         </section>
@@ -241,14 +246,14 @@ export function Landing() {
             />
           ) : (
             <button type="button" className="video-poster" onClick={() => setPlaying(true)}>
-              <img src="/media/hero.jpg" alt="" />
+              <img src="/media/hero.webp" alt="" loading="lazy" />
               <span>Дивитись відео</span>
             </button>
           )}
         </section>
 
         <section className="steps">
-          <img className="ribbon" src="/media/ribbon.png" alt="" />
+          <img className="ribbon" src="/media/ribbon.webp" alt="" loading="lazy" />
           <h2>Як зробити замовлення</h2>
           <ol>
             <li>
@@ -274,7 +279,7 @@ export function Landing() {
           <h2>Відгуки покупців</h2>
           <div className="review-row">
             {REVIEWS.map((item) => (
-              <img key={item.src} src={item.src} alt={item.alt} />
+              <img key={item.src} src={item.src} alt={item.alt} loading="lazy" />
             ))}
           </div>
         </section>
@@ -289,7 +294,7 @@ export function Landing() {
           ))}
         </section>
 
-        <img className="ribbon" src="/media/ribbon.png" alt="" />
+        <img className="ribbon" src="/media/ribbon.webp" alt="" loading="lazy" />
 
         <section className="offer-zone finale" id="order-bottom">
           <h2>Замовляйте прямо зараз</h2>
@@ -302,8 +307,6 @@ export function Landing() {
             theme={theme}
             onOffer={setOffer}
             onTheme={setTheme}
-            done={done}
-            onDone={setDone}
           />
           <p className="stock">
             залишилось <strong>7</strong> одиниць зі знижкою
@@ -311,20 +314,22 @@ export function Landing() {
         </section>
 
         <footer className="foot">
-          <img className="ribbon" src="/media/ribbon.png" alt="" />
+          <img className="ribbon" src="/media/ribbon.webp" alt="" loading="lazy" />
           <p>Оплата при отриманні. Передплата не потрібна.</p>
-          <p>
+          <nav className="foot-links" aria-label="Документи">
+            <Link to="/delivery">Оплата та доставка</Link>
             <Link to="/privacy">Політика конфіденційності</Link>
-            {" · "}
-            <Link to="/agreement">Угода користувача</Link>
-          </p>
+            <Link to="/offer">Публічна оферта</Link>
+            <Link to="/returns">Повернення товару</Link>
+            <Link to="/cookies">Файли cookie</Link>
+          </nav>
           <p className="fine">
             <Package aria-hidden="true" />1 бокс = 1 одиниця у відправленні
           </p>
         </footer>
       </div>
 
-      <a className={`sticky${sticky && !done ? " is-on" : ""}`} href="#order">
+      <a className={`sticky${sticky ? " is-on" : ""}`} href="#order">
         <span>
           {offer.name} · {offer.price} грн
         </span>
