@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 
-const FB_PIXEL_ID = "3557729764386334";
+const FB_PIXEL_ID = "1749190629525376";
 
 const THANKS_PIXEL = `(function(){try{var raw=sessionStorage.getItem('lead_order');if(!raw)return;var order=JSON.parse(raw);if(!order||!order.order_id)return;var key='sent_'+order.order_id;try{if(localStorage.getItem(key))return;localStorage.setItem(key,'1');}catch(e){}var value=Number(order.total)||0;var variant=String(order.variant||'');var phone=String(order.phone||'');try{if(typeof fbq==='function'){var fn=String(order.name||'').trim().toLowerCase();fbq('set','autoConfig',false,'${FB_PIXEL_ID}');fbq('init','${FB_PIXEL_ID}',{ph:phone,fn:fn});fbq('track','PageView');var payload={value:value,currency:'UAH',content_name:variant};var ids={eventID:String(order.order_id)};fbq('track','Lead',payload,ids);fbq('track','Purchase',payload,ids);}}catch(e){}try{var ttq=window.ttq;if(ttq&&typeof ttq.track==='function'){if(phone&&typeof ttq.identify==='function'){ttq.identify({phone_number:phone.charAt(0)==='+'?phone:'+'+phone});}ttq.track('SubmitForm',{contents:[{content_id:String(order.order_id),content_type:'product',content_name:variant}],value:value,currency:'UAH'},{event_id:String(order.order_id)});}}catch(e){}}catch(e){}})();`;
 

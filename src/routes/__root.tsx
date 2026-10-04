@@ -5,7 +5,7 @@ import { Boot } from "@/components/boot";
 import appCss from "../styles.css?url";
 
 const APP_NAME = "Сюрприз бокс — Mystery Box −35%";
-const FB_PIXEL_ID = "3557729764386334";
+const FB_PIXEL_ID = "1749190629525376";
 const TT_PIXEL_ID = "DAVD15BC77UE17RL07SG";
 
 function fbPixelSnippet(viewContent: boolean): string {
